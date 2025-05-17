@@ -316,7 +316,7 @@ def add_comment_to_post(driver, wait, comment_text):
         # 6. Wait to verify comment was posted
         human_wait(4, 6, "⏳ Verifying comment was posted...")
 
-        # Check if our comment text appears in the comments section
+        # Check if our comment text appears in the comments section..........................
         try:
             comment_verification = f"//*[contains(text(), '{comment_text.split()[0]}')]"
             driver.find_element(By.XPATH, comment_verification)
