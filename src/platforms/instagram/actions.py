@@ -2,8 +2,8 @@ import time
 import random
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from ..utils.human_behavior import human_wait
-from ..utils.logger import log_error, log_success
+from ...utils.human_behavior import human_wait
+from ...utils.logger import log_error, log_success
 from .selectors import (
     TEXTAREA_SELECTORS,
     POST_BUTTON_SELECTORS,
@@ -158,177 +158,166 @@ def add_comment_to_post(driver, wait, comment_text):
     """Improved comment function with multiple fallback approaches"""
     current_url = driver.current_url
     try:
-        print("💬 Starting comment process...")
+        print("\n🔍 DEBUG: Starting detailed comment process logging...")
+        print(f"📝 Comment text: '{comment_text}'")
+        print(f"🌐 Current URL: {current_url}")
 
         # 1. Make sure we're at the right spot in the post
+        print("🔄 Step 1: Scrolling to comment area...")
         driver.execute_script("window.scrollBy(0, 300);")
         human_wait(2, 3)
 
         # 2. Find and click the comment textarea using multiple approaches
+        print("\n🔍 Step 2: Looking for comment textarea...")
         textarea = None
-        for selector in TEXTAREA_SELECTORS:
+        for i, selector in enumerate(TEXTAREA_SELECTORS, 1):
             try:
+                print(f"  Trying selector {i}/{len(TEXTAREA_SELECTORS)}: {selector}")
                 textarea = wait.until(
                     EC.presence_of_element_located((By.XPATH, selector))
                 )
+                print("  ✅ Found textarea element")
+                
+                # Scroll the textarea into view and wait for it to be clickable
+                print("  Scrolling textarea into view...")
                 driver.execute_script(
                     "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});",
                     textarea,
                 )
                 human_wait(1, 2)
-                textarea.click()
-                print("  ✅ Found and clicked comment textarea")
+                
+                # Try to click using JavaScript first
+                print("  Attempting to click textarea...")
+                driver.execute_script("arguments[0].click();", textarea)
+                print("  ✅ Successfully clicked textarea")
                 break
-            except:
+            except Exception as e:
+                print(f"  ❌ Failed with selector {i}: {str(e)}")
                 continue
 
         if not textarea:
-            # Try JavaScript as a fallback
-            js_find_textarea = """
-            const textarea = document.querySelector('textarea[placeholder="Add a comment…"]');
-            if (textarea) {
-                textarea.scrollIntoView({behavior: 'smooth', block: 'center'});
-                textarea.click();
-                return true;
-            }
-            return false;
-            """
-            textarea_found = driver.execute_script(js_find_textarea)
-
-            if not textarea_found:
-                print("  ❌ Could not find comment textarea")
-                log_error("Failed to find comment textarea", current_url)
-                return False
-
-            # Get the textarea element after clicking it with JS
-            textarea = wait.until(
-                EC.presence_of_element_located(
-                    (By.XPATH, '//textarea[contains(@placeholder, "Add a comment")]')
-                )
-            )
+            print("❌ ERROR: Could not find any comment textarea")
+            log_error("Failed to find comment textarea", current_url)
+            return False
 
         # 3. Clear any existing text and focus
-        textarea.clear()
-        human_wait(0.5, 1)
+        print("\n📝 Step 3: Preparing to type comment...")
+        try:
+            # Re-find the textarea to avoid stale element
+            textarea = wait.until(
+                EC.presence_of_element_located((By.XPATH, TEXTAREA_SELECTORS[0]))
+            )
+            # Clear the textarea using Selenium's native method
+            textarea.clear()
+            textarea.click()
+            print("  ✅ Cleared and focused textarea")
+            human_wait(0.5, 1)
+        except Exception as e:
+            print(f"  ⚠️ Warning: Could not clear textarea: {str(e)}")
 
         # 4. Type comment text with human-like delays
-        for char in comment_text:
-            textarea.send_keys(char)
-            time.sleep(random.uniform(0.05, 0.15))
+        print("\n⌨️ Step 4: Typing comment...")
+        try:
+            # Re-find the textarea to avoid stale element
+            textarea = wait.until(
+                EC.presence_of_element_located((By.XPATH, TEXTAREA_SELECTORS[0]))
+            )
+            # Type the comment character by character with random delays
+            for char in comment_text:
+                try:
+                    textarea.send_keys(char)
+                    # Random delay between keystrokes (50-150ms)
+                    time.sleep(random.uniform(0.05, 0.15))
+                except Exception as e:
+                    # If we get a stale element, re-find the textarea and continue
+                    print("  ⚠️ Stale element detected, re-finding textarea...")
+                    textarea = wait.until(
+                        EC.presence_of_element_located((By.XPATH, TEXTAREA_SELECTORS[0]))
+                    )
+                    textarea.send_keys(char)
+                    time.sleep(random.uniform(0.05, 0.15))
+            
+            print("  ✅ Comment text entered successfully")
+            # Wait for typing to complete
+            human_wait(1, 2)
+                
+        except Exception as e:
+            print(f"  ❌ Error while typing: {str(e)}")
+            return False
 
         human_wait(2, 3, "⏳ Waiting for Post button to enable...")
 
         # 5. Find and click the Post button using more reliable selectors
+        print("\n🔍 Step 5: Looking for Post button...")
         post_button_clicked = False
 
         # Try direct XPath selectors first
-        for selector in POST_BUTTON_SELECTORS:
+        for i, selector in enumerate(POST_BUTTON_SELECTORS, 1):
             try:
-                post_button = driver.find_element(By.XPATH, selector)
-                if "aria-disabled" in post_button.get_attribute(
-                    "outerHTML"
-                ) and "true" in post_button.get_attribute("outerHTML"):
-                    print("  ⚠️ Post button is still disabled, waiting longer...")
+                print(f"  Trying Post button selector {i}/{len(POST_BUTTON_SELECTORS)}: {selector}")
+                post_button = wait.until(
+                    EC.presence_of_element_located((By.XPATH, selector))
+                )
+                print("  ✅ Found Post button element")
+                
+                # Check if button is disabled
+                disabled = post_button.get_attribute("aria-disabled")
+                print(f"  Post button disabled state: {disabled}")
+                
+                if disabled == "true":
+                    print("  ⚠️ Post button is disabled, waiting longer...")
+                    # Re-find and click the textarea to ensure focus
+                    textarea = wait.until(
+                        EC.presence_of_element_located((By.XPATH, TEXTAREA_SELECTORS[0]))
+                    )
+                    textarea.click()
                     human_wait(3, 5)
                     # Try again after waiting
-                    post_button = driver.find_element(By.XPATH, selector)
+                    post_button = wait.until(
+                        EC.presence_of_element_located((By.XPATH, selector))
+                    )
+                    disabled = post_button.get_attribute("aria-disabled")
+                    print(f"  Post button disabled state after wait: {disabled}")
 
+                # Scroll button into view
+                print("  Scrolling Post button into view...")
                 driver.execute_script(
                     "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});",
                     post_button,
                 )
                 human_wait(1, 2)
-                driver.execute_script("arguments[0].click();", post_button)
+                
+                # Try clicking with Selenium's native click first
+                print("  Attempting to click Post button...")
+                post_button.click()
                 post_button_clicked = True
-                print("  ✅ Clicked Post button using XPath")
+                print("  ✅ Successfully clicked Post button")
                 break
-            except:
+            except Exception as e:
+                print(f"  ❌ Failed with selector {i}: {str(e)}")
                 continue
 
-        # If direct selectors failed, try JavaScript approach
-        if not post_button_clicked:
-            js_click_post = """
-            // Try multiple approaches to find and click the Post button
-            
-            // First approach: Look for the most specific structure from your HTML
-            let postButton = document.querySelector('div.x1i64zmx > div[role="button"]');
-            
-            // Second approach: Look for any element with text exactly matching "Post"
-            if (!postButton) {
-                const elements = document.querySelectorAll('div');
-                for (const el of elements) {
-                    if (el.textContent === 'Post' && el.parentElement && el.parentElement.getAttribute('role') === 'button') {
-                        postButton = el.parentElement;
-                        break;
-                    }
-                }
-            }
-            
-            // Third approach: Find any button-like element after the textarea
-            if (!postButton) {
-                const textarea = document.querySelector('textarea[placeholder="Add a comment…"]');
-                if (textarea) {
-                    let current = textarea.parentElement;
-                    while (current && !current.querySelector('[role="button"]')) {
-                        current = current.parentElement;
-                    }
-                    if (current) {
-                        postButton = current.querySelector('[role="button"]');
-                    }
-                }
-            }
-            
-            // Check if button is disabled
-            if (postButton && postButton.getAttribute('aria-disabled') === 'true') {
-                // Wait for it to be enabled (simulate a short wait)
-                setTimeout(() => {
-                    if (postButton.getAttribute('aria-disabled') !== 'true') {
-                        postButton.click();
-                    }
-                }, 3000);
-                return false;
-            }
-            
-            // Click the button if found
-            if (postButton) {
-                postButton.click();
-                return true;
-            }
-            
-            return false;
-            """
-            post_button_clicked = driver.execute_script(js_click_post)
-
-            if post_button_clicked:
-                print("  ✅ Clicked Post button using JavaScript")
-            else:
-                # Try once more after a longer wait
-                human_wait(5, 7, "⏳ Waiting longer for Post button to be ready...")
-                post_button_clicked = driver.execute_script(js_click_post)
-
-                if post_button_clicked:
-                    print("  ✅ Clicked Post button after extended wait")
-                else:
-                    print("  ❌ Could not find or click Post button")
-                    log_error("Failed to click Post button", current_url)
-                    return False
+  
 
         # 6. Wait to verify comment was posted
-        human_wait(4, 6, "⏳ Verifying comment was posted...")
+        print("\n🔍 Step 6: Verifying comment was posted...")
+        human_wait(4, 6)
 
         # Check if our comment text appears in the comments section
         try:
-            comment_verification = f"//*[contains(text(), '{comment_text.split()[0]}')]"
-            driver.find_element(By.XPATH, comment_verification)
-            print("  ✅ Comment successfully verified")
-        except:
-            # Even if verification fails, we still consider it a success if we clicked the button
-            print("  ⚠️ Comment was submitted but couldn't verify it appeared")
+            first_word = comment_text.split()[0]
+            print(f"  Looking for first word of comment: '{first_word}'")
+            comment_verification = f"//*[contains(text(), '{first_word}')]"
+            wait.until(EC.presence_of_element_located((By.XPATH, comment_verification)))
+            print("  ✅ Comment successfully verified in the comments section")
+        except Exception as e:
+            print(f"  ⚠️ Could not verify comment in comments section: {str(e)}")
+            print("  Note: Comment might still have been posted successfully")
 
         log_success("Comment", current_url)
         return True
 
     except Exception as e:
-        print(f"  ❌ Error in comment function: {e}")
+        print(f"\n❌ FATAL ERROR in comment function: {str(e)}")
         log_error(f"Error in comment function: {e}", current_url)
         return False

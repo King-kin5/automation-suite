@@ -1,4 +1,4 @@
-from platforms.instagram.bot import InstagramBot
+from src.platforms.instagram.bot import InstagramBot
 
 
 def main():

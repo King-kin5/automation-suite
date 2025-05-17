@@ -7,10 +7,10 @@ load_dotenv()
 # Instagram credentials and settings
 USERNAME = os.getenv("IG_USERNAME")
 PASSWORD = os.getenv("IG_PASSWORD")
-PROFILE = "johnnydepp"  # Instagram username to target
+PROFILE = "leomessi"  # Instagram username to target
 
 # Comment settings
-COMMENT_TEXT = os.getenv("IG_COMMENT", "Amazing work as always! 👏")
+COMMENT_TEXT = os.getenv("IG_COMMENT", "Amazing work as always! ")
 COMMENT_VARIATIONS = [
     "Your talent is truly inspiring! 🌟",
     "Another masterpiece! 🎭",
