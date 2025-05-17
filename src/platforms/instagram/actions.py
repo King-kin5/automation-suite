@@ -303,7 +303,7 @@ def add_comment_to_post(driver, wait, comment_text):
         print("\n🔍 Step 6: Verifying comment was posted...")
         human_wait(4, 6)
 
-        # Check if our comment text appears in the comments section
+        # Check if our comment text appears in the comments section..........................
         try:
             first_word = comment_text.split()[0]
             print(f"  Looking for first word of comment: '{first_word}'")
