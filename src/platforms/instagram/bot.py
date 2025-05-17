@@ -3,15 +3,15 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
-from ..utils.config import (
+from src.utils.config import (
     PROFILE,
     MAX_POSTS_TO_PROCESS,
     COMMENT_TEXT,
     COMMENT_VARIATIONS,
     CHROME_OPTIONS,
 )
-from ..utils.human_behavior import human_wait
-from ..utils.logger import log_error, log_success
+from src.utils.human_behavior import human_wait
+from src.utils.logger import log_error, log_success
 from .auth import login, load_session, logout
 from .actions import (
     find_and_click_like_button,

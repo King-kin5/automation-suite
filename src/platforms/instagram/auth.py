@@ -3,8 +3,8 @@ import os
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
-from ..utils.human_behavior import human_wait, type_like_human
-from ..utils.config import USERNAME, PASSWORD
+from ...utils.human_behavior import human_wait, type_like_human
+from ...utils.config import USERNAME, PASSWORD
 
 
 def save_session(driver):
